@@ -46,21 +46,21 @@ export class GeminiService {
   private validateAndParseJSON(responseText: string, fallbackData: any): any {
     try {
       // 응답 텍스트가 비어있는지 확인
-      if (!responseText || responseText.trim() === '') {
+      if (!responseText || responseText.trim() === "") {
         console.warn("Empty response from Gemini API, using fallback");
         return fallbackData;
       }
 
       // JSON 문자열의 기본적인 유효성 검사
       const trimmedText = responseText.trim();
-      if (!trimmedText.startsWith('{') && !trimmedText.startsWith('[')) {
+      if (!trimmedText.startsWith("{") && !trimmedText.startsWith("[")) {
         console.warn("Response doesn't start with valid JSON characters, using fallback");
         return fallbackData;
       }
 
       // JSON 파싱 시도
       const parsed = JSON.parse(trimmedText);
-      
+
       // 파싱된 결과가 유효한지 확인
       if (parsed === null || parsed === undefined) {
         console.warn("Parsed JSON is null or undefined, using fallback");
@@ -72,7 +72,7 @@ export class GeminiService {
       console.error("JSON parsing error:", error);
       console.error("Response text length:", responseText.length);
       console.error("Response text preview:", responseText.substring(0, 200));
-      
+
       // JSON 문자열 복구 시도
       try {
         const repairedText = this.repairJSON(responseText);
@@ -102,18 +102,18 @@ export class GeminiService {
     const missingCloseBrackets = openBrackets - closeBrackets;
 
     for (let i = 0; i < missingCloseBraces; i++) {
-      repaired += '}';
+      repaired += "}";
     }
     for (let i = 0; i < missingCloseBrackets; i++) {
-      repaired += ']';
+      repaired += "]";
     }
 
     // 마지막 쉼표 제거 (JSON 표준 위반)
-    repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+    repaired = repaired.replace(/,(\s*[}\]])/g, "$1");
 
     // 잘린 문자열 속성 복구 시도
-    repaired = repaired.replace(/,\s*"[^"]*$/, '');
-    repaired = repaired.replace(/,\s*[^,}\]]*$/, '');
+    repaired = repaired.replace(/,\s*"[^"]*$/, "");
+    repaired = repaired.replace(/,\s*[^,}\]]*$/, "");
 
     return repaired;
   }
@@ -241,7 +241,7 @@ export class GeminiService {
       return this.validateAndParseJSON(responseText, fallbackAnalysis);
     } catch (error) {
       console.error("Error analyzing prompt:", error);
-      return fallbackAnalysis;
+      return fallbackAnalysis as ProjectAnalysis;
     }
   }
 

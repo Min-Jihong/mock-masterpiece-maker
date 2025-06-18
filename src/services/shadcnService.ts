@@ -1,4 +1,3 @@
-
 export interface ShadcnComponent {
   name: string;
   dependencies?: string[];
@@ -7,48 +6,48 @@ export interface ShadcnComponent {
 export class ShadcnService {
   // 실제 존재하는 shadcn 컴포넌트들만 포함
   private readonly commonComponents: ShadcnComponent[] = [
-    { name: 'button' },
-    { name: 'input' },
-    { name: 'card' },
-    { name: 'dialog' },
-    { name: 'form', dependencies: ['react-hook-form', '@hookform/resolvers', 'zod'] },
-    { name: 'label' },
-    { name: 'textarea' },
-    { name: 'select' },
-    { name: 'checkbox' },
-    { name: 'toast' },
-    { name: 'tabs' },
-    { name: 'badge' },
-    { name: 'alert' },
-    { name: 'avatar' },
-    { name: 'dropdown-menu' },
-    { name: 'navigation-menu' },
-    { name: 'popover' },
-    { name: 'tooltip' },
-    { name: 'calendar', dependencies: ['react-day-picker', 'date-fns'] },
-    { name: 'command' },
-    { name: 'accordion' },
-    { name: 'alert-dialog' },
-    { name: 'aspect-ratio' },
-    { name: 'breadcrumb' },
-    { name: 'carousel', dependencies: ['embla-carousel-react'] },
-    { name: 'collapsible' },
-    { name: 'context-menu' },
-    { name: 'drawer', dependencies: ['vaul'] },
-    { name: 'hover-card' },
-    { name: 'menubar' },
-    { name: 'pagination' },
-    { name: 'progress' },
-    { name: 'radio-group' },
-    { name: 'scroll-area' },
-    { name: 'separator' },
-    { name: 'sheet' },
-    { name: 'skeleton' },
-    { name: 'slider' },
-    { name: 'switch' },
-    { name: 'table' },
-    { name: 'toggle' },
-    { name: 'toggle-group' },
+    { name: "button" },
+    { name: "input" },
+    { name: "card" },
+    { name: "dialog" },
+    { name: "form", dependencies: ["react-hook-form", "@hookform/resolvers", "zod"] },
+    { name: "label" },
+    { name: "textarea" },
+    { name: "select" },
+    { name: "checkbox" },
+    { name: "toast" },
+    { name: "tabs" },
+    { name: "badge" },
+    { name: "alert" },
+    { name: "avatar" },
+    { name: "dropdown-menu" },
+    { name: "navigation-menu" },
+    { name: "popover" },
+    { name: "tooltip" },
+    { name: "calendar", dependencies: ["react-day-picker", "date-fns"] },
+    { name: "command" },
+    { name: "accordion" },
+    { name: "alert-dialog" },
+    { name: "aspect-ratio" },
+    { name: "breadcrumb" },
+    { name: "carousel", dependencies: ["embla-carousel-react"] },
+    { name: "collapsible" },
+    { name: "context-menu" },
+    { name: "drawer", dependencies: ["vaul"] },
+    { name: "hover-card" },
+    { name: "menubar" },
+    { name: "pagination" },
+    { name: "progress" },
+    { name: "radio-group" },
+    { name: "scroll-area" },
+    { name: "separator" },
+    { name: "sheet" },
+    { name: "skeleton" },
+    { name: "slider" },
+    { name: "switch" },
+    { name: "table" },
+    { name: "toggle" },
+    { name: "toggle-group" },
   ];
 
   generateShadcnConfig(): string {
@@ -324,10 +323,10 @@ export default defineConfig({
 
   getAllDependencies(): string[] {
     const allDeps = new Set<string>();
-    
-    this.commonComponents.forEach(component => {
+
+    this.commonComponents.forEach((component) => {
       if (component.dependencies) {
-        component.dependencies.forEach(dep => allDeps.add(dep));
+        component.dependencies.forEach((dep) => allDeps.add(dep));
       }
     });
 
