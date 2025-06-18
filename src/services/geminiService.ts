@@ -43,6 +43,81 @@ export class GeminiService {
     this.genAI = new GoogleGenerativeAI(apiKey);
   }
 
+  private validateAndParseJSON(responseText: string, fallbackData: any): any {
+    try {
+      // 응답 텍스트가 비어있는지 확인
+      if (!responseText || responseText.trim() === '') {
+        console.warn("Empty response from Gemini API, using fallback");
+        return fallbackData;
+      }
+
+      // JSON 문자열의 기본적인 유효성 검사
+      const trimmedText = responseText.trim();
+      if (!trimmedText.startsWith('{') && !trimmedText.startsWith('[')) {
+        console.warn("Response doesn't start with valid JSON characters, using fallback");
+        return fallbackData;
+      }
+
+      // JSON 파싱 시도
+      const parsed = JSON.parse(trimmedText);
+      
+      // 파싱된 결과가 유효한지 확인
+      if (parsed === null || parsed === undefined) {
+        console.warn("Parsed JSON is null or undefined, using fallback");
+        return fallbackData;
+      }
+
+      return parsed;
+    } catch (error) {
+      console.error("JSON parsing error:", error);
+      console.error("Response text length:", responseText.length);
+      console.error("Response text preview:", responseText.substring(0, 200));
+      
+      // JSON 문자열 복구 시도
+      try {
+        const repairedText = this.repairJSON(responseText);
+        if (repairedText !== responseText) {
+          console.log("Attempting to parse repaired JSON");
+          return JSON.parse(repairedText);
+        }
+      } catch (repairError) {
+        console.error("JSON repair also failed:", repairError);
+      }
+
+      return fallbackData;
+    }
+  }
+
+  private repairJSON(jsonString: string): string {
+    let repaired = jsonString.trim();
+
+    // 잘린 JSON 문자열 복구 시도
+    const openBraces = (repaired.match(/\{/g) || []).length;
+    const closeBraces = (repaired.match(/\}/g) || []).length;
+    const openBrackets = (repaired.match(/\[/g) || []).length;
+    const closeBrackets = (repaired.match(/\]/g) || []).length;
+
+    // 부족한 닫는 괄호 추가
+    const missingCloseBraces = openBraces - closeBraces;
+    const missingCloseBrackets = openBrackets - closeBrackets;
+
+    for (let i = 0; i < missingCloseBraces; i++) {
+      repaired += '}';
+    }
+    for (let i = 0; i < missingCloseBrackets; i++) {
+      repaired += ']';
+    }
+
+    // 마지막 쉼표 제거 (JSON 표준 위반)
+    repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+
+    // 잘린 문자열 속성 복구 시도
+    repaired = repaired.replace(/,\s*"[^"]*$/, '');
+    repaired = repaired.replace(/,\s*[^,}\]]*$/, '');
+
+    return repaired;
+  }
+
   async analyzePrompt(userPrompt: string): Promise<ProjectAnalysis> {
     console.log("Analyzing user prompt with Gemini...");
 
@@ -121,6 +196,29 @@ export class GeminiService {
       responseMimeType: "application/json",
       responseSchema: responseSchema,
       temperature: 0.3,
+      maxOutputTokens: 4096, // 토큰 제한 추가
+    };
+
+    const fallbackAnalysis = {
+      projectName: `generated-website-${new Date().getTime()}`,
+      description: "사용자 요청에 따라 생성된 웹사이트",
+      pages: [
+        {
+          name: "메인 페이지",
+          path: "/",
+          description: "홈페이지",
+          components: [
+            {
+              name: "HomePage",
+              type: "page",
+              description: "메인 페이지 컴포넌트",
+            },
+          ],
+          features: ["기본 레이아웃", "네비게이션"],
+        },
+      ],
+      features: ["반응형 디자인", "모던 UI"],
+      techStack: ["Next.js", "Shadcn UI", "TailwindCSS"],
     };
 
     try {
@@ -138,34 +236,12 @@ export class GeminiService {
       const response = result.response;
       const responseText = response.text();
 
-      console.log("Gemini response:", responseText);
+      console.log("Gemini response length:", responseText.length);
 
-      return JSON.parse(responseText);
+      return this.validateAndParseJSON(responseText, fallbackAnalysis);
     } catch (error) {
       console.error("Error analyzing prompt:", error);
-
-      // 기본값 반환
-      return {
-        projectName: `generated-website-${new Date().getTime()}`,
-        description: "사용자 요청에 따라 생성된 웹사이트",
-        pages: [
-          {
-            name: "메인 페이지",
-            path: "/",
-            description: "홈페이지",
-            components: [
-              {
-                name: "HomePage",
-                type: "page",
-                description: "메인 페이지 컴포넌트",
-              },
-            ],
-            features: ["기본 레이아웃", "네비게이션"],
-          },
-        ],
-        features: ["반응형 디자인", "모던 UI"],
-        techStack: ["Next.js", "Shadcn UI", "TailwindCSS"],
-      };
+      return fallbackAnalysis;
     }
   }
 
@@ -246,7 +322,16 @@ ${supabaseProject ? "8. Supabase 클라이언트 사용시 @supabase/supabase-js
       responseMimeType: "application/json",
       responseSchema: responseSchema,
       temperature: 0.4,
+      maxOutputTokens: 8192, // 토큰 제한 추가
     };
+
+    const fallbackCode = [
+      {
+        filePath: page.path === "/" ? "src/app/page.tsx" : `src/app${page.path}/page.tsx`,
+        content: this.getDefaultPageCode(page, supabaseProject),
+        description: `${page.name} 기본 코드`,
+      },
+    ];
 
     try {
       const result = await model.generateContent({
@@ -263,20 +348,12 @@ ${supabaseProject ? "8. Supabase 클라이언트 사용시 @supabase/supabase-js
       const response = result.response;
       const responseText = response.text();
 
-      console.log("Generated page code:", responseText);
+      console.log("Generated page code length:", responseText.length);
 
-      return JSON.parse(responseText);
+      return this.validateAndParseJSON(responseText, fallbackCode);
     } catch (error) {
       console.error("Error generating page code:", error);
-
-      // 기본 페이지 코드 반환
-      return [
-        {
-          filePath: page.path === "/" ? "src/app/page.tsx" : `src/app${page.path}/page.tsx`,
-          content: this.getDefaultPageCode(page, supabaseProject),
-          description: `${page.name} 기본 코드`,
-        },
-      ];
+      return fallbackCode;
     }
   }
 
@@ -350,7 +427,10 @@ Shadcn UI 컴포넌트들은 실제 CLI 명령어로 생성되는 것과 동일�
       responseMimeType: "application/json",
       responseSchema: responseSchema,
       temperature: 0.2,
+      maxOutputTokens: 8192, // 토큰 제한 추가
     };
+
+    const fallbackStructure = this.getDefaultProjectStructure(analysis, supabaseProject);
 
     try {
       const result = await model.generateContent({
@@ -367,9 +447,9 @@ Shadcn UI 컴포넌트들은 실제 CLI 명령어로 생성되는 것과 동일�
       const response = result.response;
       const responseText = response.text();
 
-      console.log("Generated project structure:", responseText);
+      console.log("Generated project structure length:", responseText.length);
 
-      const generatedFiles = JSON.parse(responseText);
+      const generatedFiles = this.validateAndParseJSON(responseText, fallbackStructure);
 
       // 기본 Shadcn UI 컴포넌트들을 추가로 생성
       const shadcnComponents = this.getShadcnComponents();
@@ -377,7 +457,7 @@ Shadcn UI 컴포넌트들은 실제 CLI 명령어로 생성되는 것과 동일�
       return [...generatedFiles, ...shadcnComponents];
     } catch (error) {
       console.error("Error generating project structure:", error);
-      return this.getDefaultProjectStructure(analysis, supabaseProject);
+      return fallbackStructure;
     }
   }
 
@@ -1074,7 +1154,7 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 group-[.destructive]:border-muted/40 group-[.destructive]:hover:border-destructive/30 group-[.destructive]:hover:bg-destructive group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:focus:ring-destructive">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
