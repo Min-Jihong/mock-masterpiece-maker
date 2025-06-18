@@ -2,6 +2,7 @@ import { GeminiService, GeneratedCode } from "./geminiService";
 import { GitHubService } from "./githubService";
 import { VercelService } from "./vercelService";
 import { SupabaseService } from "./supabaseService";
+import { ShadcnService } from "./shadcnService";
 
 export interface ProjectGenerationStep {
   id: string;
@@ -16,10 +17,12 @@ export class ProjectGenerator {
   private githubService: GitHubService;
   private vercelService?: VercelService;
   private supabaseService?: SupabaseService;
+  private shadcnService: ShadcnService;
 
   constructor(geminiApiKey: string, githubToken: string, vercelToken?: string, supabaseToken?: string) {
     this.geminiService = new GeminiService(geminiApiKey);
     this.githubService = new GitHubService(githubToken);
+    this.shadcnService = new ShadcnService();
     if (vercelToken) {
       this.vercelService = new VercelService(vercelToken);
     }
@@ -40,6 +43,12 @@ export class ProjectGenerator {
         id: "repo",
         title: "GitHub 레포지토리 생성",
         description: "새로운 레포지토리를 생성하고 있습니다",
+        status: "pending",
+      },
+      {
+        id: "setup",
+        title: "프로젝트 기본 설정",
+        description: "Vite, Tailwind, shadcn/ui 설정을 구성하고 있습니다",
         status: "pending",
       },
       {
@@ -95,16 +104,25 @@ export class ProjectGenerator {
 
       steps[1].status = "completed";
       steps[1].details = `레포지토리: ${repoInfo.name}`;
+      steps[2].status = "progress";
+      onStepUpdate([...steps]);
 
-      let currentStepIndex = 2;
+      // Step 3: 프로젝트 기본 설정 (shadcn/ui 포함)
+      console.log("Step 3: Setting up project configuration...");
+      const setupFiles = this.generateSetupFiles(analysis.projectName);
 
-      // Step 2.5: Supabase 설정 (필요한 경우)
+      steps[2].status = "completed";
+      steps[2].details = `기본 설정 파일 ${setupFiles.length}개 생성`;
+
+      let currentStepIndex = 3;
+
+      // Step 3.5: Supabase 설정 (필요한 경우)
       let supabaseProject;
       if (this.detectBackendNeeds(userPrompt) && this.supabaseService) {
         steps[currentStepIndex].status = "progress";
         onStepUpdate([...steps]);
 
-        console.log("Step 2.5: Setting up Supabase...");
+        console.log("Step 3.5: Setting up Supabase...");
         supabaseProject = await this.supabaseService.createProject(analysis.projectName);
 
         // 인증 활성화
@@ -115,23 +133,23 @@ export class ProjectGenerator {
         currentStepIndex++;
       }
 
-      // Step 3: 프로젝트 구조 생성
+      // Step 4: 프로젝트 구조 생성
       steps[currentStepIndex].status = "progress";
       onStepUpdate([...steps]);
 
-      console.log("Step 3: Generating project structure...");
+      console.log("Step 4: Generating project structure...");
       const structureFiles = await this.geminiService.generateProjectStructure(analysis, supabaseProject);
 
       steps[currentStepIndex].status = "completed";
       steps[currentStepIndex].details = `${structureFiles.length}개 구조 파일 생성`;
       currentStepIndex++;
 
-      // Step 4: 페이지별 코드 생성
+      // Step 5: 페이지별 코드 생성
       steps[currentStepIndex].status = "progress";
       onStepUpdate([...steps]);
 
-      console.log("Step 4: Generating page codes...");
-      const allFiles: GeneratedCode[] = [...structureFiles];
+      console.log("Step 5: Generating page codes...");
+      const allFiles: GeneratedCode[] = [...setupFiles, ...structureFiles];
 
       for (const page of analysis.pages) {
         const pageFiles = await this.geminiService.generatePageCode(page, analysis, supabaseProject);
@@ -142,11 +160,11 @@ export class ProjectGenerator {
       steps[currentStepIndex].details = `총 ${allFiles.length}개 파일 생성`;
       currentStepIndex++;
 
-      // Step 5: GitHub에 커밋
+      // Step 6: GitHub에 커밋
       steps[currentStepIndex].status = "progress";
       onStepUpdate([...steps]);
 
-      console.log("Step 5: Committing to GitHub...");
+      console.log("Step 6: Committing to GitHub...");
       const filesToCommit = allFiles.map((file) => ({
         path: file.filePath,
         content: file.content,
@@ -162,13 +180,13 @@ export class ProjectGenerator {
       steps[currentStepIndex].details = "프로젝트 배포 완료";
       currentStepIndex++;
 
-      // Step 6: Vercel 배포 (선택적)
+      // Step 7: Vercel 배포 (선택적)
       if (this.vercelService) {
         const vercelStepIndex = steps.findIndex(step => step.id === "vercel");
         steps[vercelStepIndex].status = "progress";
         onStepUpdate([...steps]);
 
-        console.log("Step 6: Importing GitHub repository to Vercel...");
+        console.log("Step 7: Importing GitHub repository to Vercel...");
         
         // GitHub 레포지토리를 Vercel로 가져오기
         const vercelProject = await this.vercelService.importGitHubRepository(
@@ -198,6 +216,122 @@ export class ProjectGenerator {
 
       throw error;
     }
+  }
+
+  private generateSetupFiles(projectName: string): GeneratedCode[] {
+    const files: GeneratedCode[] = [];
+
+    // package.json
+    files.push({
+      filePath: 'package.json',
+      content: this.shadcnService.generatePackageJson(projectName),
+    });
+
+    // vite.config.ts
+    files.push({
+      filePath: 'vite.config.ts',
+      content: this.shadcnService.generateViteConfig(),
+    });
+
+    // tailwind.config.ts
+    files.push({
+      filePath: 'tailwind.config.ts',
+      content: this.shadcnService.generateTailwindConfig(),
+    });
+
+    // components.json (shadcn/ui config)
+    files.push({
+      filePath: 'components.json',
+      content: this.shadcnService.generateShadcnConfig(),
+    });
+
+    // src/lib/utils.ts
+    files.push({
+      filePath: 'src/lib/utils.ts',
+      content: this.shadcnService.generateUtilsFile(),
+    });
+
+    // src/index.css
+    files.push({
+      filePath: 'src/index.css',
+      content: this.shadcnService.generateIndexCSS(),
+    });
+
+    // postcss.config.js
+    files.push({
+      filePath: 'postcss.config.js',
+      content: `module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}`,
+    });
+
+    // tsconfig.json
+    files.push({
+      filePath: 'tsconfig.json',
+      content: `{
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ]
+}`,
+    });
+
+    // tsconfig.app.json
+    files.push({
+      filePath: 'tsconfig.app.json',
+      content: `{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src"]
+}`,
+    });
+
+    // tsconfig.node.json
+    files.push({
+      filePath: 'tsconfig.node.json',
+      content: `{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "noEmit": true
+  },
+  "include": ["vite.config.ts"]
+}`,
+    });
+
+    return files;
   }
 
   private detectBackendNeeds(prompt: string): boolean {
