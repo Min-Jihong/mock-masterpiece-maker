@@ -56,11 +56,21 @@ export class ProjectGenerator {
       },
       {
         id: "deploy",
-        title: "배포",
+        title: "GitHub 배포",
         description: "GitHub에 코드를 푸시하고 있습니다",
         status: "pending",
       },
     ];
+
+    // Vercel 배포 단계 추가 (선택적)
+    if (this.vercelService) {
+      steps.push({
+        id: "vercel",
+        title: "Vercel 배포",
+        description: "GitHub 레포지토리를 Vercel에 연동하고 배포합니다",
+        status: "pending",
+      });
+    }
 
     onStepUpdate([...steps]);
 
@@ -154,16 +164,23 @@ export class ProjectGenerator {
 
       // Step 6: Vercel 배포 (선택적)
       if (this.vercelService) {
-        currentStepIndex--;
-        steps[currentStepIndex].status = "progress";
+        const vercelStepIndex = steps.findIndex(step => step.id === "vercel");
+        steps[vercelStepIndex].status = "progress";
         onStepUpdate([...steps]);
 
-        console.log("Step 6: Deploying to Vercel...");
-        const vercelProject = await this.vercelService.createProject(repoInfo.html_url, analysis.projectName);
-        const deployment = await this.vercelService.deployProject(vercelProject.id);
+        console.log("Step 6: Importing GitHub repository to Vercel...");
+        
+        // GitHub 레포지토리를 Vercel로 가져오기
+        const vercelProject = await this.vercelService.importGitHubRepository(
+          repoInfo.html_url, 
+          analysis.projectName
+        );
+        
+        // 배포 트리거
+        const deployment = await this.vercelService.triggerDeployment(vercelProject.id);
 
-        steps[currentStepIndex].status = "completed";
-        steps[currentStepIndex].details = `배포 URL: https://${deployment.url}`;
+        steps[vercelStepIndex].status = "completed";
+        steps[vercelStepIndex].details = `배포 URL: https://${vercelProject.name}.vercel.app`;
       }
 
       onStepUpdate([...steps]);
