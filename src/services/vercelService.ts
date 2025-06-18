@@ -63,9 +63,9 @@ export class VercelService {
         type: 'github',
         repo: `${owner}/${repoName}`,
       },
-      framework: 'nextjs',
+      framework: 'vite',
       buildCommand: 'npm run build',
-      outputDirectory: '.next',
+      outputDirectory: 'dist',
       installCommand: 'npm install',
       devCommand: 'npm run dev',
     };
@@ -89,18 +89,21 @@ export class VercelService {
     const repoName = repo.replace('.git', '');
     const finalProjectName = projectName || repoName;
 
-    // Vercel에서 GitHub 레포지토리를 가져와서 프로젝트 생성
+    // Vercel v10 API 사용 - type 속성 제거
     const importData = {
-      type: 'github',
-      source: `${owner}/${repoName}`,
-      installCommand: 'npm install',
+      name: finalProjectName,
+      gitRepository: {
+        repo: `${owner}/${repoName}`,
+        type: 'github',
+      },
+      framework: 'vite',
       buildCommand: 'npm run build',
       outputDirectory: 'dist',
-      framework: 'vite',
-      name: finalProjectName,
+      installCommand: 'npm install',
+      devCommand: 'npm run dev',
     };
 
-    return this.request('/v9/projects', {
+    return this.request('/v10/projects', {
       method: 'POST',
       body: JSON.stringify(importData),
     });

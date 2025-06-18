@@ -5,7 +5,7 @@ export interface ShadcnComponent {
 }
 
 export class ShadcnService {
-  // 자주 사용되는 shadcn 컴포넌트들 목록
+  // 실제 존재하는 shadcn 컴포넌트들만 포함
   private readonly commonComponents: ShadcnComponent[] = [
     { name: 'button' },
     { name: 'input' },
@@ -26,7 +26,6 @@ export class ShadcnService {
     { name: 'popover' },
     { name: 'tooltip' },
     { name: 'calendar', dependencies: ['react-day-picker', 'date-fns'] },
-    { name: 'combobox' },
     { name: 'command' },
     { name: 'accordion' },
     { name: 'alert-dialog' },
