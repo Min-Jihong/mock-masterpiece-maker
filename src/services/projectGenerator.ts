@@ -1,3 +1,4 @@
+
 import { GeminiService, GeneratedCode } from "./geminiService";
 import { GitHubService } from "./githubService";
 import { VercelService } from "./vercelService";
@@ -225,36 +226,42 @@ export class ProjectGenerator {
     files.push({
       filePath: 'package.json',
       content: this.shadcnService.generatePackageJson(projectName),
+      description: 'Package.json with all necessary dependencies for React, Vite, Tailwind, and shadcn/ui',
     });
 
     // vite.config.ts
     files.push({
       filePath: 'vite.config.ts',
       content: this.shadcnService.generateViteConfig(),
+      description: 'Vite configuration with React support and path aliases',
     });
 
     // tailwind.config.ts
     files.push({
       filePath: 'tailwind.config.ts',
       content: this.shadcnService.generateTailwindConfig(),
+      description: 'Tailwind CSS configuration with shadcn/ui theme and animations',
     });
 
     // components.json (shadcn/ui config)
     files.push({
       filePath: 'components.json',
       content: this.shadcnService.generateShadcnConfig(),
+      description: 'shadcn/ui configuration file for component generation',
     });
 
     // src/lib/utils.ts
     files.push({
       filePath: 'src/lib/utils.ts',
       content: this.shadcnService.generateUtilsFile(),
+      description: 'Utility functions for className merging with clsx and tailwind-merge',
     });
 
     // src/index.css
     files.push({
       filePath: 'src/index.css',
       content: this.shadcnService.generateIndexCSS(),
+      description: 'Global CSS with Tailwind directives and shadcn/ui CSS variables',
     });
 
     // postcss.config.js
@@ -266,6 +273,7 @@ export class ProjectGenerator {
     autoprefixer: {},
   },
 }`,
+      description: 'PostCSS configuration for Tailwind CSS and Autoprefixer',
     });
 
     // tsconfig.json
@@ -282,6 +290,7 @@ export class ProjectGenerator {
     }
   ]
 }`,
+      description: 'Main TypeScript configuration with project references',
     });
 
     // tsconfig.app.json
@@ -311,6 +320,7 @@ export class ProjectGenerator {
   },
   "include": ["src"]
 }`,
+      description: 'TypeScript configuration for the React application with path aliases',
     });
 
     // tsconfig.node.json
@@ -329,6 +339,7 @@ export class ProjectGenerator {
   },
   "include": ["vite.config.ts"]
 }`,
+      description: 'TypeScript configuration for Vite and Node.js files',
     });
 
     return files;
