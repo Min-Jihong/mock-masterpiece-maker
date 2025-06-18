@@ -177,7 +177,7 @@ export class GeminiService {
     console.log(`Generating code for page: ${page.name}`);
 
     const model = this.genAI.getGenerativeModel({
-      model: "gemini-1.5-pro-latest",
+      model: "gemini-2.5-flash",
     });
 
     let supabaseInfo = "";
@@ -284,7 +284,7 @@ ${supabaseProject ? "8. Supabase 클라이언트 사용시 @supabase/supabase-js
     console.log("Generating project structure files...");
 
     const model = this.genAI.getGenerativeModel({
-      model: "gemini-1.5-pro-latest",
+      model: "gemini-2.5-flash",
     });
 
     let supabaseInfo = "";
